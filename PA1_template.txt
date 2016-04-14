@@ -1,0 +1,101 @@
+<h1>Loading and processing data</h1>
+
+<pre><code class="r echo=TRUE">##### Load packages
+require(knitr)
+require(markdown)
+
+
+setwd(&#39;C:/Users/GWANG1/Documents/GitHub/RepData_PeerAssessmentProj1&#39;)
+dat &lt;- read.csv(&quot;activity.csv&quot;)
+
+#### convert date to date data type
+dat$date &lt;- as.Date(dat$date)
+
+library(ggplot2)
+#### Mean of total number of steps taken per day
+datc &lt;- na.omit(dat) 
+steps.total &lt;-tapply(datc$steps, datc$date,FUN=sum, na.rm=TRUE)
+dim(steps.total)
+hist(steps.total,breaks=10,xlab=&quot;Total Number of Steps Taken per Day&quot;, col=&quot;grey&quot;,main=&quot;Histogram of Total Steps&quot;)
+print(&quot;Mean of Total number of steps taken per day&quot;)
+mean(steps.total,na.rm=T)
+print(&quot;Median of Total number of steps taken per day&quot;)
+median(steps.total,na.rm=T)
+</code></pre>
+
+<h1>Average daily activity</h1>
+
+<pre><code class="r echo=TRUE">head(dat[!is.na(dat$steps),])
+avg &lt;- aggregate(x=list(steps=dat$steps),by=list(interval=dat$interval), FUN=mean, na.rm=T)
+ggplot(data=avg, aes(x=interval, y=steps))+geom_line(color=&quot;blue&quot;,size=1)+xlab(&quot;5-minute Interval&quot;)+ylab(&quot;Average Number of Steps Taken&quot;)
+print(&quot;Maximum number of Steps in 5-minute Interval&quot;)
+avg[which.max(avg$steps),]
+</code></pre>
+
+<h1>Imputing missing values</h1>
+
+<pre><code class="r echo=TRUE">#### 1. total number of missing values in dataset
+sum(is.na(dat$steps))
+
+##### 2. Replace missing value with mean for that 5-minute interval
+dat.impmiss &lt;- dat
+nas&lt;- is.na(dat.impmiss$steps)
+avg_int&lt;- tapply(dat.impmiss$steps, dat.impmiss$interval, mean, na.rm=TRUE, simplify = TRUE)
+dat.impmiss$steps[nas] &lt;- avg_int[as.character(dat.impmiss$interval[nas])]
+names(dat.impmiss)
+print(&quot;#Missing&quot;)
+sum(is.na(dat.impmiss))
+
+#### Histogram
+steps.imp &lt;-tapply(dat.impmiss$steps, dat.impmiss$date,FUN=sum, na.rm=TRUE)
+dim(steps.imp)
+hist(steps.imp,breaks=10,xlab=&quot;Total Number of Steps Taken per Day&quot;, col=&quot;green&quot;,main=&quot;Total Steps including Imputing Value&quot;)
+mean(steps.imp)
+median(steps.imp)
+</code></pre>
+
+<h1>Difference in activity patterns between weekdays and weekends</h1>
+
+<pre><code class="r echo=TRUE">#### Function: wwdat
+wwdat &lt;- function(date){
+        day &lt;-weekdays(date)
+        if(day %in% c(&quot;Monday&quot;,&quot;Tuesday&quot;,&quot;Wednesday&quot;,&quot;Thursday&quot;,&quot;Friday&quot;))
+                return(&quot;Weekday&quot;)
+        else if( day %in% c(&quot;Saturday&quot;,&quot;Sunday&quot;))
+                return(&quot;Weekend&quot;)
+        else
+                stop(&quot;Invalid Date&quot;)
+}
+
+dat.impmiss$weektype &lt;- as.Date(dat.impmiss$date)
+dat.impmiss$weektype &lt;- sapply(dat.impmiss$weektype, FUN=wwdat)
+
+#### Plot
+avg.imp &lt;- aggregate(steps~interval+weektype, data=dat.impmiss, mean)
+
+library(&quot;lattice&quot;)
+xyplot(steps ~  interval|factor(weektype), data=avg.imp, 
+            type = &#39;l&#39;,
+            main=&quot;Averaged Across All Weekday Days or Weekend Days&quot;,
+            xlab=&quot;Interval&quot;,
+            ylab=&quot;Number of Steps&quot;,layout=c(1,2))
+
+#transform the .Rmd to a markdown (.md) file.
+#knit(&#39;PA1_template.Rmd&#39;)
+
+#transform the .md to HTML format
+markdownToHTML(&quot;PA1_template.Rmd&quot;, &quot;PA1_template.html&quot;,fragment.only = TRUE)
+
+#transform the  HTML to .md format
+markdownToHTML(&quot;PA1_template.html&quot;,&quot;PA1_template.md&quot;, fragment.only = TRUE)
+
+knit2html(&quot;PA1_template.html&quot;,&quot;PA1_template.md&quot;)
+
+##### Create .md, .html, and .pdf files
+#knit2html
+#rmarkdown::render(&#39;PA1_template.Rmd&#39;, &#39;PA1_template.html&#39;)  #, options=c(&quot;use_xhml&quot;)
+#rmarkdown::render(&#39;PA1_template.Rmd&#39;, &#39;PA1_template.md&#39;)  #, options=c(&quot;use_xhml&quot;)
+
+
+</code></pre>
+

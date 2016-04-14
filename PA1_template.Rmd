@@ -1,0 +1,111 @@
+---
+output: 
+  html_document: 
+    keep_md: yes
+---
+# Loading and processing data
+
+
+```{r echo=TRUE}
+##### Load packages
+require(knitr)
+require(markdown)
+
+
+setwd('C:/Users/GWANG1/Documents/GitHub/RepData_PeerAssessmentProj1')
+dat <- read.csv("activity.csv")
+
+#### convert date to date data type
+dat$date <- as.Date(dat$date)
+
+library(ggplot2)
+#### Mean of total number of steps taken per day
+datc <- na.omit(dat) 
+steps.total <-tapply(datc$steps, datc$date,FUN=sum, na.rm=TRUE)
+dim(steps.total)
+hist(steps.total,breaks=10,xlab="Total Number of Steps Taken per Day", col="grey",main="Histogram of Total Steps")
+print("Mean of Total number of steps taken per day")
+mean(steps.total,na.rm=T)
+print("Median of Total number of steps taken per day")
+median(steps.total,na.rm=T)
+```
+
+# Average daily activity
+
+```{r echo=TRUE}
+head(dat[!is.na(dat$steps),])
+avg <- aggregate(x=list(steps=dat$steps),by=list(interval=dat$interval), FUN=mean, na.rm=T)
+ggplot(data=avg, aes(x=interval, y=steps))+geom_line(color="blue",size=1)+xlab("5-minute Interval")+ylab("Average Number of Steps Taken")
+print("Maximum number of Steps in 5-minute Interval")
+avg[which.max(avg$steps),]
+```
+
+# Imputing missing values
+
+```{r echo=TRUE}
+#### 1. total number of missing values in dataset
+sum(is.na(dat$steps))
+
+##### 2. Replace missing value with mean for that 5-minute interval
+dat.impmiss <- dat
+nas<- is.na(dat.impmiss$steps)
+avg_int<- tapply(dat.impmiss$steps, dat.impmiss$interval, mean, na.rm=TRUE, simplify = TRUE)
+dat.impmiss$steps[nas] <- avg_int[as.character(dat.impmiss$interval[nas])]
+names(dat.impmiss)
+print("#Missing")
+sum(is.na(dat.impmiss))
+
+#### Histogram
+steps.imp <-tapply(dat.impmiss$steps, dat.impmiss$date,FUN=sum, na.rm=TRUE)
+dim(steps.imp)
+hist(steps.imp,breaks=10,xlab="Total Number of Steps Taken per Day", col="green",main="Total Steps including Imputing Value")
+mean(steps.imp)
+median(steps.imp)
+```
+
+
+# Difference in activity patterns between weekdays and weekends
+
+```{r echo=TRUE}
+#### Function: wwdat
+wwdat <- function(date){
+        day <-weekdays(date)
+        if(day %in% c("Monday","Tuesday","Wednesday","Thursday","Friday"))
+                return("Weekday")
+        else if( day %in% c("Saturday","Sunday"))
+                return("Weekend")
+        else
+                stop("Invalid Date")
+}
+
+dat.impmiss$weektype <- as.Date(dat.impmiss$date)
+dat.impmiss$weektype <- sapply(dat.impmiss$weektype, FUN=wwdat)
+
+#### Plot
+avg.imp <- aggregate(steps~interval+weektype, data=dat.impmiss, mean)
+
+library("lattice")
+xyplot(steps ~  interval|factor(weektype), data=avg.imp, 
+            type = 'l',
+            main="Averaged Across All Weekday Days or Weekend Days",
+            xlab="Interval",
+            ylab="Number of Steps",layout=c(1,2))
+
+#transform the .Rmd to a markdown (.md) file.
+#knit('PA1_template.Rmd')
+
+#transform the .md to HTML format
+markdownToHTML("PA1_template.Rmd", "PA1_template.html",fragment.only = TRUE)
+
+#transform the  HTML to .md format
+markdownToHTML("PA1_template.html","PA1_template.md", fragment.only = TRUE)
+
+knit2html("PA1_template.html","PA1_template.md")
+
+##### Create .md, .html, and .pdf files
+#knit2html
+#rmarkdown::render('PA1_template.Rmd', 'PA1_template.html')  #, options=c("use_xhml")
+#rmarkdown::render('PA1_template.Rmd', 'PA1_template.md')  #, options=c("use_xhml")
+
+          
+```
